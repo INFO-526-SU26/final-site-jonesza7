@@ -1,11 +1,11 @@
 ---
-title: "Proposal title"
+title: "What We Watch on Netflix"
 subtitle: "Proposal"
 author: 
-  - name: "Team Name"
+  - name: "Zach Jones"
     affiliations:
       - name: "School of Information, University of Arizona"
-description: "Project description"
+description: "Exploring Netflix engagement data to understand what drives viewership and how global availability relates to engagement over time."
 format:
   html:
     code-tools: true
@@ -29,16 +29,48 @@ library(tidyverse)
 ```{r}
 #| label: load-dataset
 #| message: false
+base <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-07-29/"
+movies <- read_csv(paste0(base, "movies.csv"))
+shows  <- read_csv(paste0(base, "shows.csv"))
+
+netflix <- bind_rows(
+  movies |> mutate(content_type = "Film"),
+  shows  |> mutate(content_type = "Show")
+) |>
+  mutate(
+    release_date = as.Date(release_date),
+    release_year = year(release_date)
+  )
 ```
 
-A brief description of your dataset including its provenance, dimensions, etc. as well as the reason why you chose this dataset.
+This dataset comes from Netflix's *What We Watched: A Netflix Engagement Report*, released through the TidyTuesday project on 2025-07-29. Apparently, Netflix publishes these reports twice a year and lists nearly every title with meaningful viewing, so the data covers a broad slice of the catalog rather than a curated top ten.
 
-Make sure to load the data and use inline code for some of this information.
+The two source files (`movies.csv` and `shows.csv`) share the same eight columns. After combining them, the data has `r nrow(netflix)` rows across `r nrow(movies)` film entries and `r nrow(shows)` show entries. Each row is a title within one reporting period, with hours viewed, view count, runtime, a global availability flag, and a release date. Titles span release years from `r min(netflix$release_year, na.rm = TRUE)` to `r max(netflix$release_year, na.rm = TRUE)` and appear across `r n_distinct(netflix$report)` reporting periods.
+
+I chose this dataset because it mixes clear numerical measures (hours viewed, views, runtime) with categorical structure (films versus shows, global availability, reporting period), and it is large enough to look at patterns across the catalog. It is also a topic everyone has some intuition about, which should make the findings easy to communicate.
 
 ## Questions
 
-The two questions you want to answer.
+1.  How do hours viewed relate to a title's runtime and how recently it was released, and does that relationship differ between films and shows?
+
+2.  Is global availability associated with higher engagement, and how has the engagement share of globally available titles shifted across reporting periods for films and shows?
 
 ## Analysis plan
 
--   A plan for answering each of the questions including the variables involved, variables to be created (if any), external data to be merged in (if any).
+**Question 1.** I will look at the relationship between `hours_viewed`, runtime in minutes, release recency, and `content_type`. Runtime is stored as text (for example `1H 54M 0S`), so I will parse it into a numeric `runtime_min`. I will group titles into release-year cohorts from `release_year` so recency can be compared without crowding the plot. The main visualization will plot hours viewed against runtime, with films and shows shown separately and cohort encoded by color, so I can see whether longer or more recent titles tend to draw more viewing.
+
+**Question 2.** I will compare engagement between titles marked `Yes` and `No` on `available_globally`, using `hours_viewed` and `views`. I will clean the availability column first, dropping a stray header value and deciding how to handle missing entries. With `report` treated as an ordered factor, I will summarize the share of total engagement coming from globally available titles in each period, split by `content_type`, to see how that share moves over time. I will keep the framing associational, since Netflix does not assign global availability at random.
+
+No external data is needed. Variables to create are `runtime_min`, `release_year` and its cohort bins, `content_type`, a cleaned `available_globally`, and `report` as an ordered factor. Because a title can appear in more than one reporting period, I will note where rows are repeated and choose a single period per title when a question calls for it.
+
+## Weekly project plan
+
+| Task Name | Status | Due | Priority | Summary |
+|---------------|---------------|---------------|---------------|---------------|
+| Choose dataset and draft proposal | Complete | Jun 4 | High | Pick Netflix data, write questions and plan |
+| Peer review feedback | Not started | Jun 6 | Moderate | Review two projects, file GitHub issues |
+| Revise proposal | Not started | Jun 9 | High | Address peer feedback, finalize questions |
+| Build Question 1 analysis | Not started | Jun 16 | High | Clean data, runtime parsing, first plot |
+| Build Question 2 analysis | Not started | Jun 20 | High | Availability and engagement over time |
+| Write up findings in index.qmd | Not started | Jun 25 | Moderate | Draft introduction, approach, discussion |
+| Slides and recorded presentation | Not started | Jun 30 | High | Finalize site, record under five minutes |
